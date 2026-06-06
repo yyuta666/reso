@@ -72,11 +72,12 @@ CONTENT = load_content()
 
 def get_main_menu():
     builder = InlineKeyboardBuilder()
+    builder.button(text="📋 Оформить полис", callback_data="show_services")
+    builder.adjust(1)
+    return builder.as_markup()
     
-    # Кнопка "Оформить полис" — первой и на всю ширину
-    builder.button(text="📋 Оформить полис", callback_data="oformit")
-    
-    # Остальные разделы
+    def get_services_menu():
+    builder = InlineKeyboardBuilder()
     builder.button(text="🚗 Автострахование", callback_data="auto")
     builder.button(text="🏠 Имущество", callback_data="property")
     builder.button(text="❤️ Жизнь и здоровье", callback_data="life_health")
@@ -85,8 +86,7 @@ def get_main_menu():
     builder.button(text="🏦 Ипотека", callback_data="ipoteka")
     builder.button(text="⚖️ Ответственность", callback_data="liability")
     builder.button(text="🏢 Страхование бизнеса", callback_data="business")
-    
-    builder.adjust(1, 2)   # первая кнопка на всю ширину, остальные по 2 в ряд
+    builder.adjust(2)
     return builder.as_markup()
 
 @dp.message(Command("start"))
@@ -130,6 +130,13 @@ async def any_message(message: types.Message):
 @dp.callback_query()
 async def callback_handler(callback: types.CallbackQuery):
     data = callback.data
+        if data == "show_services":
+        await callback.message.edit_text(
+            "Выберите раздел:",
+            reply_markup=get_services_menu()
+        )
+        await callback.answer()
+        return
     if data in CONTENT:
         section = CONTENT[data]
         text = f"{section['title']}\n\n{section.get('text', '')}"
