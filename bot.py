@@ -85,6 +85,7 @@ def get_services_menu():
     builder.button(text="🏦 Ипотека", callback_data="ipoteka")
     builder.button(text="⚖️ Ответственность", callback_data="liability")
     builder.button(text="🏢 Страхование бизнеса", callback_data="business")
+    builder.button(text="◀️ Назад", callback_data="back_to_start")
     builder.adjust(2)
     return builder.as_markup()
 
@@ -130,23 +131,28 @@ async def any_message(message: types.Message):
 async def callback_handler(callback: types.CallbackQuery):
     data = callback.data
 
-    if data == "show_services":
-        await callback.message.edit_text(
-            "Выберите раздел:",
-            reply_markup=get_services_menu()
-        )
+         if data == "back_to_services":
+        await callback.message.edit_text("Выберите раздел:", reply_markup=get_services_menu())
         await callback.answer()
         return
-    # здесь дальше идут остальные if data == "auto", "property" и т.д.
+
     if data in CONTENT:
         section = CONTENT[data]
         text = f"{section['title']}\n\n{section.get('text', '')}"
+
         builder = InlineKeyboardBuilder()
         for btn in section.get("buttons", []):
             builder.button(text=btn[0], callback_data=btn[1])
         builder.adjust(1)
-        await callback.message.edit_text(text, reply_markup=builder.as_markup() if section.get("buttons") else get_main_menu())
-    await callback.answer()
+
+        # Добавляем кнопку "Назад" в меню услуг
+        back_builder = InlineKeyboardBuilder()
+        back_builder.button(text="◀️ Назад", callback_data="back_to_services")
+
+        final_markup = builder.as_markup() if section.get("buttons") else back_builder.as_markup()
+
+        await callback.message.edit_text(text, reply_markup=final_markup)
+        await callback.answer()
 
 
 @dp.message(Command("set_greeting"))
