@@ -154,8 +154,11 @@ async def cmd_set_greeting(message: types.Message):
     global GREETING
     GREETING = parts[1].strip()
     await message.answer("✅ Приветствие обновлено!")
-    async def main():
+
+
+async def main():
     await dp.start_polling(bot)
+
 
 if __name__ == "__main__":
     import asyncio
