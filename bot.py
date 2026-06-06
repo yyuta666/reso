@@ -136,22 +136,19 @@ async def callback_handler(callback: types.CallbackQuery):
         await callback.answer()
         return
 
-    if data in CONTENT:
+       if data in CONTENT:
         section = CONTENT[data]
         text = f"{section['title']}\n\n{section.get('text', '')}"
 
         builder = InlineKeyboardBuilder()
         for btn in section.get("buttons", []):
             builder.button(text=btn[0], callback_data=btn[1])
+
+        # Добавляем кнопку Назад
+        builder.button(text="◀️ Назад", callback_data="back_to_services")
         builder.adjust(1)
 
-        # Добавляем кнопку "Назад" в меню услуг
-        back_builder = InlineKeyboardBuilder()
-        back_builder.button(text="◀️ Назад", callback_data="back_to_services")
-
-        final_markup = builder.as_markup() if section.get("buttons") else back_builder.as_markup()
-
-        await callback.message.edit_text(text, reply_markup=final_markup)
+        await callback.message.edit_text(text, reply_markup=builder.as_markup())
         await callback.answer()
 
 
