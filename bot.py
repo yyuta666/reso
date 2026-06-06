@@ -75,8 +75,7 @@ def get_main_menu():
     builder.button(text="📋 Оформить полис", callback_data="show_services")
     builder.adjust(1)
     return builder.as_markup()
-    
-    def get_services_menu():
+def get_services_menu():
     builder = InlineKeyboardBuilder()
     builder.button(text="🚗 Автострахование", callback_data="auto")
     builder.button(text="🏠 Имущество", callback_data="property")
