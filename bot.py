@@ -6,22 +6,52 @@ from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-ADMIN_IDS = [8381286547]  # ЗАМЕНИ НА СВОЙ user_id
+ADMIN_IDS = [123456789]  # ЗАМЕНИ НА СВОЙ user_id
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
+# Полный список разделов
+SECTIONS = [
+    "auto", "property", "life_health", "dms", 
+    "travel", "ipoteka", "liability", "business"
+]
+
 DEFAULT_CONTENT = {
-    "auto": {"title": "🚗 Страхование авто", "text": "Выберите тип:", "buttons": [["ОСАГО (обязательное)", "osago"], ["КАСКО (добровольное)", "kasko"]]},
-    "osago": {"title": "ОСАГО", "text": "Что покрывает ОСАГО..."},
-    "kasko": {"title": "КАСКО", "text": "Что покрывает КАСКО..."},
-    "home": {"title": "🏠 Страхование дома", "text": "Выберите программу:", "buttons": [["Домовой Эконом", "domovoy_ekonom"], ["Домовой Экспресс", "domovoy_express"], ["Домовой Премиум", "domovoy_premium"]]},
-    "domovoy_ekonom": {"title": "Домовой Эконом", "text": "Описание программы..."},
-    "domovoy_express": {"title": "Домовой Экспресс", "text": "Описание..."},
-    "domovoy_premium": {"title": "Домовой Премиум", "text": "Описание..."},
-    "health": {"title": "❤️ Здоровье (ДМС)", "text": "Что входит в ДМС..."},
-    "oformit": {"title": "📋 Оформление", "text": "Как оформить полис..."}
+    "auto": {
+        "title": "🚗 Автострахование",
+        "text": "ОСАГО и КАСКО от РЕСО-Гарантия.\n\nВыберите тип:",
+        "buttons": [["ОСАГО", "osago"], ["КАСКО", "kasko"]]
+    },
+    "property": {
+        "title": "🏠 Имущество",
+        "text": "Страхование квартиры, дома, дачи и ответственности перед соседями."
+    },
+    "life_health": {
+        "title": "❤️ Жизнь и здоровье",
+        "text": "Страхование жизни и от несчастных случаев."
+    },
+    "dms": {
+        "title": "🏥 Добровольное медицинское страхование",
+        "text": "ДМС — медицинская помощь, врачи, скорая, телемедицина."
+    },
+    "travel": {
+        "title": "✈️ Путешествия",
+        "text": "Страхование выезда за границу и поездок по России."
+    },
+    "ipoteka": {
+        "title": "🏦 Ипотека",
+        "text": "Ипотечное страхование недвижимости."
+    },
+    "liability": {
+        "title": "⚖️ Ответственность",
+        "text": "Страхование гражданской и профессиональной ответственности."
+    },
+    "business": {
+        "title": "🏢 Страхование бизнеса",
+        "text": "Страхование для юридических лиц и предпринимателей."
+    }
 }
 
 def load_content():
@@ -40,58 +70,69 @@ CONTENT = load_content()
 
 def get_main_menu():
     builder = InlineKeyboardBuilder()
-    builder.button(text="🚗 Авто", callback_data="auto")
-    builder.button(text="🏠 Дом", callback_data="home")
-    builder.button(text="❤️ Здоровье", callback_data="health")
-    builder.button(text="📋 Оформить", callback_data="oformit")
+    builder.button(text="🚗 Автострахование", callback_data="auto")
+    builder.button(text="🏠 Имущество", callback_data="property")
+    builder.button(text="❤️ Жизнь и здоровье", callback_data="life_health")
+    builder.button(text="🏥 ДМС", callback_data="dms")
+    builder.button(text="✈️ Путешествия", callback_data="travel")
+    builder.button(text="🏦 Ипотека", callback_data="ipoteka")
+    builder.button(text="⚖️ Ответственность", callback_data="liability")
+    builder.button(text="🏢 Страхование бизнеса", callback_data="business")
     builder.adjust(2)
-    return builder.as_markup()
-
-def get_buttons(section_key):
-    data = CONTENT.get(section_key, {})
-    builder = InlineKeyboardBuilder()
-    for btn in data.get("buttons", []):
-        builder.button(text=btn[0], callback_data=btn[1])
-    builder.adjust(1)
     return builder.as_markup()
 
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
-    await message.answer("Привет! Выбери раздел:", reply_markup=get_main_menu())
+    await message.answer(
+        "Привет! Я бот РЕСО-Гарантия.\nВыбери раздел:",
+        reply_markup=get_main_menu()
+    )
 
 @dp.message(Command("help"))
 async def cmd_help(message: types.Message):
-    await message.answer("Команды: /start, /help, /set_auto [текст], /set_health [текст] и т.д. (только для админа)")
+    text = "Доступные команды:\n/start — главное меню\n/help — эта справка\n"
+    for sec in SECTIONS:
+        text += f"/set_{sec} [текст] — изменить раздел (только админ)\n"
+    await message.answer(text)
 
-@dp.message(Command(commands=["set_auto", "set_health", "set_home", "set_oformit"]))
+@dp.message(Command(commands=[f"set_{sec}" for sec in SECTIONS]))
 async def cmd_set(message: types.Message):
     if message.from_user.id not in ADMIN_IDS:
-        await message.answer("Только админ.")
+        await message.answer("Только админ может редактировать.")
         return
+
     parts = message.text.split(maxsplit=1)
     if len(parts) < 2:
-        await message.answer("Пример: /set_auto Новый текст 🔥")
+        await message.answer("Пример: /set_auto Новый текст здесь 🔥")
         return
-    section = parts[0].replace("/set_", "")
+
+    command = parts[0]
     new_text = parts[1].strip()
+    section = command.replace("/set_", "")
+
     if section in CONTENT:
         CONTENT[section]["text"] = new_text
         save_content(CONTENT)
-        await message.answer(f"✅ {section} обновлён")
+        await message.answer(f"✅ Раздел {section} обновлён!")
     else:
-        await message.answer("Раздел не найден")
+        await message.answer("Раздел не найден.")
 
 @dp.message()
 async def any_message(message: types.Message):
     if message.text and message.text.startswith("/"):
-        await message.answer("Неизвестная команда. /help")
+        await message.answer("Неизвестная команда. Напиши /help")
 
 @dp.callback_query()
 async def callback_handler(callback: types.CallbackQuery):
     data = callback.data
     if data in CONTENT:
-        text = f"{CONTENT[data]['title']}\n\n{CONTENT[data]['text']}"
-        await callback.message.edit_text(text, reply_markup=get_buttons(data) if "buttons" in CONTENT[data] else get_main_menu())
+        section = CONTENT[data]
+        text = f"{section['title']}\n\n{section.get('text', '')}"
+        builder = InlineKeyboardBuilder()
+        for btn in section.get("buttons", []):
+            builder.button(text=btn[0], callback_data=btn[1])
+        builder.adjust(1)
+        await callback.message.edit_text(text, reply_markup=builder.as_markup() if section.get("buttons") else get_main_menu())
     await callback.answer()
 
 async def main():
