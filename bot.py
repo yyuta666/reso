@@ -129,13 +129,15 @@ async def any_message(message: types.Message):
 @dp.callback_query()
 async def callback_handler(callback: types.CallbackQuery):
     data = callback.data
-        if data == "show_services":
+
+    if data == "show_services":
         await callback.message.edit_text(
             "Выберите раздел:",
             reply_markup=get_services_menu()
         )
         await callback.answer()
         return
+    # здесь дальше идут остальные if data == "auto", "property" и т.д.
     if data in CONTENT:
         section = CONTENT[data]
         text = f"{section['title']}\n\n{section.get('text', '')}"
