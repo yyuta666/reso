@@ -148,6 +148,7 @@ async def callback_handler(callback: types.CallbackQuery):
         await callback.message.edit_text(text, reply_markup=builder.as_markup() if section.get("buttons") else get_main_menu())
     await callback.answer()
 
+
 @dp.message(Command("set_greeting"))
 async def cmd_set_greeting(message: types.Message):
     if message.from_user.id not in ADMIN_IDS:
