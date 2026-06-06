@@ -139,7 +139,21 @@ async def callback_handler(callback: types.CallbackQuery):
         await callback.message.edit_text(text, reply_markup=builder.as_markup() if section.get("buttons") else get_main_menu())
     await callback.answer()
 
-async def main():
+@dp.message(Command("set_greeting"))
+async def cmd_set_greeting(message: types.Message):
+    if message.from_user.id not in ADMIN_IDS:
+        await message.answer("Только админ может менять приветствие.")
+        return
+
+    parts = message.text.split(maxsplit=1)
+    if len(parts) < 2:
+        await message.answer("Пример: /set_greeting Привет! Выбери нужную страховку 🔥")
+        return
+
+    global GREETING
+    GREETING = parts[1].strip()
+    await message.answer("✅ Приветствие обновлено!")
+    async def main():
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
