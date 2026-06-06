@@ -131,12 +131,17 @@ async def any_message(message: types.Message):
 async def callback_handler(callback: types.CallbackQuery):
     data = callback.data
 
-         if data == "back_to_services":
+    if data == "show_services":
         await callback.message.edit_text("Выберите раздел:", reply_markup=get_services_menu())
         await callback.answer()
         return
 
-       if data in CONTENT:
+    if data == "back_to_services":
+        await callback.message.edit_text("Выберите раздел:", reply_markup=get_services_menu())
+        await callback.answer()
+        return
+
+    if data in CONTENT:
         section = CONTENT[data]
         text = f"{section['title']}\n\n{section.get('text', '')}"
 
@@ -144,13 +149,11 @@ async def callback_handler(callback: types.CallbackQuery):
         for btn in section.get("buttons", []):
             builder.button(text=btn[0], callback_data=btn[1])
 
-        # Добавляем кнопку Назад
         builder.button(text="◀️ Назад", callback_data="back_to_services")
         builder.adjust(1)
 
         await callback.message.edit_text(text, reply_markup=builder.as_markup())
         await callback.answer()
-
 
 @dp.message(Command("set_greeting"))
 async def cmd_set_greeting(message: types.Message):
