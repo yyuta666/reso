@@ -6,13 +6,29 @@ from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-ADMIN_IDS = [8381286547]   # ← ЗАМЕНИ НА СВОЙ user_id (узнать у @userinfobot)
+ADMIN_IDS = [8381286547]  # ЗАМЕНИ НА СВОЙ user_id
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
+DEFAULT_CONTENT = {
+    "auto": {"title": "🚗 Страхование авто", "text": "Выберите тип:", "buttons": [["ОСАГО (обязательное)", "osago"], ["КАСКО (добровольное)", "kasko"]]},
+    "osago": {"title": "ОСАГО", "text": "Что покрывает ОСАГО..."},
+    "kasko": {"title": "КАСКО", "text": "Что покрывает КАСКО..."},
+    "home": {"title": "🏠 Страхование дома", "text": "Выберите программу:", "buttons": [["Домовой Эконом", "domovoy_ekonom"], ["Домовой Экспресс", "domovoy_express"], ["Домовой Премиум", "domovoy_premium"]]},
+    "domovoy_ekonom": {"title": "Домовой Эконом", "text": "Описание программы..."},
+    "domovoy_express": {"title": "Домовой Экспресс", "text": "Описание..."},
+    "domovoy_premium": {"title": "Домовой Премиум", "text": "Описание..."},
+    "health": {"title": "❤️ Здоровье (ДМС)", "text": "Что входит в ДМС..."},
+    "oformit": {"title": "📋 Оформление", "text": "Как оформить полис..."}
+}
+
 def load_content():
+    if not os.path.exists("content.json"):
+        with open("content.json", "w", encoding="utf-8") as f:
+            json.dump(DEFAULT_CONTENT, f, ensure_ascii=False, indent=2)
+        return DEFAULT_CONTENT.copy()
     with open("content.json", "r", encoding="utf-8") as f:
         return json.load(f)
 
@@ -45,58 +61,37 @@ async def cmd_start(message: types.Message):
 
 @dp.message(Command("help"))
 async def cmd_help(message: types.Message):
-    await message.answer(
-        "Команды:\n"
-        "/start — меню\n"
-        "/set_auto [текст] — изменить Авто (только админ)\n"
-        "/set_health [текст] — изменить Здоровье\n"
-        "/set_home [текст] — изменить Дом\n"
-        "/set_oformit [текст] — изменить Оформление\n\n"
-        "Пример: /set_auto 🔥 Новый текст здесь"
-    )
+    await message.answer("Команды: /start, /help, /set_auto [текст], /set_health [текст] и т.д. (только для админа)")
 
 @dp.message(Command(commands=["set_auto", "set_health", "set_home", "set_oformit"]))
 async def cmd_set(message: types.Message):
     if message.from_user.id not in ADMIN_IDS:
-        await message.answer("Только админ может менять текст.")
+        await message.answer("Только админ.")
         return
-
     parts = message.text.split(maxsplit=1)
     if len(parts) < 2:
-        await message.answer("После команды напиши новый текст.\nПример: /set_auto Новый текст 🔥")
+        await message.answer("Пример: /set_auto Новый текст 🔥")
         return
-
-    command = parts[0]
+    section = parts[0].replace("/set_", "")
     new_text = parts[1].strip()
-    section = command.replace("/set_", "")
-
     if section in CONTENT:
         CONTENT[section]["text"] = new_text
         save_content(CONTENT)
-        await message.answer(f"✅ Раздел {section} обновлён!")
+        await message.answer(f"✅ {section} обновлён")
     else:
-        await message.answer("Такой раздел не найден.")
+        await message.answer("Раздел не найден")
 
 @dp.message()
 async def any_message(message: types.Message):
     if message.text and message.text.startswith("/"):
-        await message.answer("Неизвестная команда. Напиши /help")
+        await message.answer("Неизвестная команда. /help")
 
 @dp.callback_query()
 async def callback_handler(callback: types.CallbackQuery):
     data = callback.data
-    if data in ["auto", "home", "health", "oformit"]:
-        await callback.message.edit_text(
-            f"{CONTENT[data]['title']}\n\n{CONTENT[data]['text']}",
-            reply_markup=get_buttons(data)
-        )
-    else:
-        content = CONTENT.get(data)
-        if content:
-            await callback.message.edit_text(
-                f"{content['title']}\n\n{content['text']}",
-                reply_markup=get_main_menu()
-            )
+    if data in CONTENT:
+        text = f"{CONTENT[data]['title']}\n\n{CONTENT[data]['text']}"
+        await callback.message.edit_text(text, reply_markup=get_buttons(data) if "buttons" in CONTENT[data] else get_main_menu())
     await callback.answer()
 
 async def main():
