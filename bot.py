@@ -90,10 +90,7 @@ def get_main_menu():
 
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
-    await message.answer(
-        "Привет! Я бот РЕСО-Гарантия.\nВыбери раздел:",
-        reply_markup=get_main_menu()
-    )
+    await message.answer(GREETING, reply_markup=get_main_menu())
 
 @dp.message(Command("help"))
 async def cmd_help(message: types.Message):
