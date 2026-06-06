@@ -6,7 +6,7 @@ from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-ADMIN_IDS = [123456789]  # ЗАМЕНИ НА СВОЙ user_id
+ADMIN_IDS = [8381286547]  # ЗАМЕНИ НА СВОЙ user_id
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=BOT_TOKEN)
@@ -70,6 +70,11 @@ CONTENT = load_content()
 
 def get_main_menu():
     builder = InlineKeyboardBuilder()
+    
+    # Кнопка "Оформить полис" — первой и на всю ширину
+    builder.button(text="📋 Оформить полис", callback_data="oformit")
+    
+    # Остальные разделы
     builder.button(text="🚗 Автострахование", callback_data="auto")
     builder.button(text="🏠 Имущество", callback_data="property")
     builder.button(text="❤️ Жизнь и здоровье", callback_data="life_health")
@@ -78,7 +83,8 @@ def get_main_menu():
     builder.button(text="🏦 Ипотека", callback_data="ipoteka")
     builder.button(text="⚖️ Ответственность", callback_data="liability")
     builder.button(text="🏢 Страхование бизнеса", callback_data="business")
-    builder.adjust(2)
+    
+    builder.adjust(1, 2)   # первая кнопка на всю ширину, остальные по 2 в ряд
     return builder.as_markup()
 
 @dp.message(Command("start"))
