@@ -6,7 +6,8 @@ from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-ADMIN_IDS = [8381286547] GREETING = "Привет! Выбери раздел:"
+ADMIN_IDS = [8381286547] 
+GREETING = "Привет! Выбери раздел:"
 
 
 logging.basicConfig(level=logging.INFO)
