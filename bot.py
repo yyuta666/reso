@@ -1,112 +1,102 @@
 import logging
+import json
+import os
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-import os
 
-# Импорт контента из отдельных файлов (редактируй только content_*.py)
-from content_auto import AUTO_MAIN, OSAGO, KASKO
-from content_health import HEALTH_MAIN, DMS_DETAILS, DMS_PRICES
-from content_home import HOME_MAIN, DOMOVOY_EKONOM, DOMOVOY_EXPRESS, DOMOVOY_PREMIUM
-from content_oformit import OFORMIT
-
-# Токен бота
 BOT_TOKEN = os.getenv("BOT_TOKEN")
+ADMIN_IDS = [123456789]   # ← ЗАМЕНИ НА СВОЙ user_id (узнать у @userinfobot)
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
+def load_content():
+    with open("content.json", "r", encoding="utf-8") as f:
+        return json.load(f)
+
+def save_content(data):
+    with open("content.json", "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+CONTENT = load_content()
+
 def get_main_menu():
     builder = InlineKeyboardBuilder()
     builder.button(text="🚗 Авто", callback_data="auto")
-    builder.button(text="🏠 Дом / Квартира", callback_data="home")
-    builder.button(text="❤️ Здоровье (ДМС)", callback_data="health")
-    builder.button(text="📋 Оформить полис", callback_data="oformit")
+    builder.button(text="🏠 Дом", callback_data="home")
+    builder.button(text="❤️ Здоровье", callback_data="health")
+    builder.button(text="📋 Оформить", callback_data="oformit")
     builder.adjust(2)
     return builder.as_markup()
 
-def get_sub_menu(data):
+def get_buttons(section_key):
+    data = CONTENT.get(section_key, {})
     builder = InlineKeyboardBuilder()
-    for text, cb in data.get("buttons", []):
-        builder.button(text=text, callback_data=cb)
+    for btn in data.get("buttons", []):
+        builder.button(text=btn[0], callback_data=btn[1])
     builder.adjust(1)
     return builder.as_markup()
 
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
+    await message.answer("Привет! Выбери раздел:", reply_markup=get_main_menu())
+
+@dp.message(Command("help"))
+async def cmd_help(message: types.Message):
     await message.answer(
-        "Привет! Я бот РЕСО-Гарантия.\n\n"
-        "Выбери раздел, чтобы узнать условия, тарифы и что покрывает страховка.\n"
-        "После — сразу оформи на сайте.",
-        reply_markup=get_main_menu()
+        "Команды:\n"
+        "/start — меню\n"
+        "/set_auto [текст] — изменить Авто (только админ)\n"
+        "/set_health [текст] — изменить Здоровье\n"
+        "/set_home [текст] — изменить Дом\n"
+        "/set_oformit [текст] — изменить Оформление\n\n"
+        "Пример: /set_auto 🔥 Новый текст здесь"
     )
 
-@dp.callback_query()
-async def handle_callback(callback: types.CallbackQuery):
-    data = callback.data
+@dp.message(Command(commands=["set_auto", "set_health", "set_home", "set_oformit"]))
+async def cmd_set(message: types.Message):
+    if message.from_user.id not in ADMIN_IDS:
+        await message.answer("Только админ может менять текст.")
+        return
 
-    if data == "start":
+    parts = message.text.split(maxsplit=1)
+    if len(parts) < 2:
+        await message.answer("После команды напиши новый текст.\nПример: /set_auto Новый текст 🔥")
+        return
+
+    command = parts[0]
+    new_text = parts[1].strip()
+    section = command.replace("/set_", "")
+
+    if section in CONTENT:
+        CONTENT[section]["text"] = new_text
+        save_content(CONTENT)
+        await message.answer(f"✅ Раздел {section} обновлён!")
+    else:
+        await message.answer("Такой раздел не найден.")
+
+@dp.message()
+async def any_message(message: types.Message):
+    if message.text and message.text.startswith("/"):
+        await message.answer("Неизвестная команда. Напиши /help")
+
+@dp.callback_query()
+async def callback_handler(callback: types.CallbackQuery):
+    data = callback.data
+    if data in ["auto", "home", "health", "oformit"]:
         await callback.message.edit_text(
-            "Главное меню. Выбери раздел:",
-            reply_markup=get_main_menu()
+            f"{CONTENT[data]['title']}\n\n{CONTENT[data]['text']}",
+            reply_markup=get_buttons(data)
         )
-    elif data == "auto":
-        await callback.message.edit_text(
-            f"{AUTO_MAIN['title']}\n\n{AUTO_MAIN['text']}",
-            reply_markup=get_sub_menu(AUTO_MAIN)
-        )
-    elif data == "osago":
-        await callback.message.edit_text(
-            f"{OSAGO['title']}\n\n{OSAGO['text']}",
-            reply_markup=get_sub_menu(OSAGO)
-        )
-    elif data == "kasko":
-        await callback.message.edit_text(
-            f"{KASKO['title']}\n\n{KASKO['text']}",
-            reply_markup=get_sub_menu(KASKO)
-        )
-    elif data == "home":
-        await callback.message.edit_text(
-            f"{HOME_MAIN['title']}\n\n{HOME_MAIN['text']}",
-            reply_markup=get_sub_menu(HOME_MAIN)
-        )
-    elif data == "domovoy_ekonom":
-        await callback.message.edit_text(
-            f"{DOMOVOY_EKONOM['title']}\n\n{DOMOVOY_EKONOM['text']}",
-            reply_markup=get_sub_menu(DOMOVOY_EKONOM)
-        )
-    elif data == "domovoy_express":
-        await callback.message.edit_text(
-            f"{DOMOVOY_EXPRESS['title']}\n\n{DOMOVOY_EXPRESS['text']}",
-            reply_markup=get_sub_menu(DOMOVOY_EXPRESS)
-        )
-    elif data == "domovoy_premium":
-        await callback.message.edit_text(
-            f"{DOMOVOY_PREMIUM['title']}\n\n{DOMOVOY_PREMIUM['text']}",
-            reply_markup=get_sub_menu(DOMOVOY_PREMIUM)
-        )
-    elif data == "health":
-        await callback.message.edit_text(
-            f"{HEALTH_MAIN['title']}\n\n{HEALTH_MAIN['text']}",
-            reply_markup=get_sub_menu(HEALTH_MAIN)
-        )
-    elif data == "dms_details":
-        await callback.message.edit_text(
-            f"{DMS_DETAILS['title']}\n\n{DMS_DETAILS['text']}",
-            reply_markup=get_sub_menu(DMS_DETAILS)
-        )
-    elif data == "dms_prices":
-        await callback.message.edit_text(
-            f"{DMS_PRICES['title']}\n\n{DMS_PRICES['text']}",
-            reply_markup=get_sub_menu(DMS_PRICES)
-        )
-    elif data == "oformit":
-        await callback.message.edit_text(
-            f"{OFORMIT['title']}\n\n{OFORMIT['text']}",
-            reply_markup=get_sub_menu(OFORMIT)
-        )
-    
+    else:
+        content = CONTENT.get(data)
+        if content:
+            await callback.message.edit_text(
+                f"{content['title']}\n\n{content['text']}",
+                reply_markup=get_main_menu()
+            )
     await callback.answer()
 
 async def main():
